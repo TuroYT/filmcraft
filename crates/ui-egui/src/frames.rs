@@ -302,6 +302,7 @@ impl filmcraft_media::MediaSource for TimedSource {
     fn video_frame(&self, req: filmcraft_media::FrameRequest) -> filmcraft_media::Result<Arc<filmcraft_frame::VideoFrame>> {
         timed_source(|| self.0.video_frame(req))
     }
+    /// The inner source's unturned frame, timed like [`Self::video_frame`].
     fn video_frame_unturned(&self, req: filmcraft_media::FrameRequest) -> filmcraft_media::Result<(Arc<filmcraft_frame::VideoFrame>, u8)> {
         timed_source(|| self.0.video_frame_unturned(req))
     }

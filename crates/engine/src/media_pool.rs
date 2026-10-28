@@ -530,6 +530,8 @@ impl MediaSource for UnsupportedAsSlate {
             r => r,
         }
     }
+    /// The inner source's unturned frame; an unsupported one goes through [`Self::video_frame`]
+    /// (the slate, upright).
     fn video_frame_unturned(&self, req: FrameRequest) -> filmcraft_media::Result<(Arc<VideoFrame>, u8)> {
         match self.inner.video_frame_unturned(req) {
             Err(MediaError::Unsupported(_)) => self.video_frame(req).map(|f| (f, 0)),
@@ -584,6 +586,8 @@ impl MediaSource for DamagedAsSlate {
             r => r,
         }
     }
+    /// The inner source's unturned frame. A success resets the failure count; a failure goes
+    /// through [`Self::video_frame`], which counts it and draws the slate once the file is damaged.
     fn video_frame_unturned(&self, req: FrameRequest) -> filmcraft_media::Result<(Arc<VideoFrame>, u8)> {
         match self.inner.video_frame_unturned(req) {
             Ok(f) => {

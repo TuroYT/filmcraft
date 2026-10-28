@@ -621,6 +621,7 @@ impl MediaSource for MkvSource {
         Ok(self.video.frame_late(&MkvVideo { src: self, track: ti }, target, late)?)
     }
 
+    /// The frame as decoded, with the track's display rotation left to the caller (#3467).
     fn video_frame_unturned(&self, req: FrameRequest) -> Result<(Arc<VideoFrame>, u8), MediaError> {
         let ti = self.vtrack.ok_or(MediaError::NoStream("video"))?;
         let t = req.time.max(Tick::ZERO);

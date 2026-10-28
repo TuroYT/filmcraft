@@ -473,6 +473,8 @@ impl MediaSource for Mp4Source {
         Ok(f)
     }
 
+    /// The frame as decoded, with the display matrix's rotation left to the caller (#3467). The
+    /// time lookup is `video_at`'s.
     fn video_frame_unturned(&self, req: FrameRequest) -> Result<(Arc<VideoFrame>, u8), MediaError> {
         let ti = self.vtrack.ok_or_else(|| CodecError::Unsupported("no video".into()))?;
         let t = req.time.max(Tick::ZERO);

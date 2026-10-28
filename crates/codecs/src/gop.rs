@@ -531,6 +531,7 @@ impl GopCache {
         Self::in_pool(explicit_color, pool)
     }
 
+    /// An empty cache whose decoders and frame memory count against `pool`.
     fn in_pool(explicit_color: Option<ColorInfo>, pool: Arc<Pool>) -> Self {
         let shared = Arc::new(Shared {
             state: Mutex::new(State {
@@ -728,6 +729,8 @@ impl GopCache {
         r
     }
 
+    /// The cached or decoded frame for [`Self::frame_late`] and [`Self::frame_late_unturned`], raw
+    /// when it still waits for [`Self::finish`]. The cache's lock is released when this returns.
     fn frame_late_locked(&self, s: &dyn VideoSamples, target: i64, late_before: Option<i64>) -> crate::Result<Taken> {
         let n = s.count();
         let i = s.sample_at(target.max(0)).or_else(|| (n > 0).then(|| n - 1)).ok_or_else(|| CodecError::Decode("empty track".into()))?;

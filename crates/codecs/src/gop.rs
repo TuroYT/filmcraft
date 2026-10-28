@@ -931,17 +931,15 @@ impl GopCache {
             DECODED.fetch_add(1, Ordering::Relaxed);
             timed(|| dec.decode(&data, want_pts))
         });
-        // crop and rotate before taking the lock: that work runs on rayon (see `isolated`)
-        let res = res.map(|out| {
-            count_frames(&out);
-            out.into_iter().map(|d| (d.pts, self.finish(d.frame), d.draft)).collect::<Vec<_>>()
-        });
+        let res = res.inspect(|out| count_frames(out));
         let mut st = self.shared.state.lock().unwrap_or_else(PoisonError::into_inner);
         if st.spare.len() < 16 {
             st.spare.push(dec);
         }
-        for (pts, frame, draft) in res? {
-            self.store_finished(&mut st, pts, frame, draft);
+        // cached raw: the request that takes a frame crops and turns it off the lock, or leaves
+        // the turn to the GPU (`frame_late_unturned`)
+        for d in res? {
+            self.store(&mut st, d.pts, d.frame, d.draft);
         }
         st.at_or_before(want_pts, true).ok_or_else(|| CodecError::Decode("frame not produced".into()))
     }

@@ -832,6 +832,9 @@ fn raw_frames_taken_from_the_cache_come_out_rotated() {
         fn name(&self) -> &str {
             "wide"
         }
+        fn intra_only(&self) -> bool {
+            self.0.intra_only()
+        }
     }
     // 2×1: the index in the left pixel, 255 in the right one
     fn widen(d: DecodedFrame) -> DecodedFrame {
@@ -858,17 +861,20 @@ fn raw_frames_taken_from_the_cache_come_out_rotated() {
             Ok(Box::new(WideDec(self.0.make_decoder()?)))
         }
     }
-    let s = Wide(samples(30, 30, 0, false));
-    let c = GopCache::new(None).with_rotation(1);
-    // frame 4 is decoded for the request, frame 2 taken raw from the cache afterwards
-    for i in [4usize, 2] {
-        let f = c.frame(&s, i as i64 * 1000).expect("frame");
-        assert_eq!((f.width, f.height), (1, 2), "frame {i}");
-        // a clockwise quarter turn puts the left pixel on top
-        assert_eq!(f.to_rgba8()[..4], [i as u8, 0, 0, 255], "frame {i}");
+    // long-GOP and intra-only (ProRes, DNx) decoding alike
+    for intra in [false, true] {
+        let s = Wide(samples(30, 30, 0, intra));
+        let c = GopCache::new(None).with_rotation(1);
+        // frame 4 is decoded for the request, frame 2 taken raw from the cache afterwards
+        for i in [4usize, 2] {
+            let f = c.frame(&s, i as i64 * 1000).expect("frame");
+            assert_eq!((f.width, f.height), (1, 2), "intra {intra} frame {i}");
+            // a clockwise quarter turn puts the left pixel on top
+            assert_eq!(f.to_rgba8()[..4], [i as u8, 0, 0, 255], "intra {intra} frame {i}");
+        }
+        // left to the caller, the turn is not done: frame 3 comes as decoded, then turned on request
+        let (f, turns) = c.frame_late_unturned(&s, 3000, None).expect("frame");
+        assert_eq!((f.width, f.height, turns), (2, 1, 1), "intra {intra}");
+        assert_eq!((c.frame(&s, 3000).expect("frame").width, turns), (1, 1), "intra {intra}");
     }
-    // left to the caller, the turn is not done: frame 3 comes as decoded, then turned on request
-    let (f, turns) = c.frame_late_unturned(&s, 3000, None).expect("frame");
-    assert_eq!((f.width, f.height, turns), (2, 1, 1));
-    assert_eq!((c.frame(&s, 3000).expect("frame").width, turns), (1, 1));
 }

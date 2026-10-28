@@ -621,6 +621,14 @@ impl MediaSource for MkvSource {
         Ok(self.video.frame_late(&MkvVideo { src: self, track: ti }, target, late)?)
     }
 
+    fn video_frame_unturned(&self, req: FrameRequest) -> Result<(Arc<VideoFrame>, u8), MediaError> {
+        let ti = self.vtrack.ok_or(MediaError::NoStream("video"))?;
+        let t = req.time.max(Tick::ZERO);
+        let target = from_tick(&self.file.tracks[ti], t);
+        let late = filmcraft_media::cancel::catch_up().map(|m| from_tick(&self.file.tracks[ti], t - m));
+        Ok(self.video.frame_late_unturned(&MkvVideo { src: self, track: ti }, target, late)?)
+    }
+
     fn audio(&self, start: i64, frames: usize, sample_rate: u32) -> Result<AudioBuffer, MediaError> {
         self.audio_stream(0, start, frames, sample_rate)
     }

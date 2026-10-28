@@ -530,6 +530,12 @@ impl MediaSource for UnsupportedAsSlate {
             r => r,
         }
     }
+    fn video_frame_unturned(&self, req: FrameRequest) -> filmcraft_media::Result<(Arc<VideoFrame>, u8)> {
+        match self.inner.video_frame_unturned(req) {
+            Err(MediaError::Unsupported(_)) => self.video_frame(req).map(|f| (f, 0)),
+            r => r,
+        }
+    }
     fn audio(&self, start: i64, frames: usize, sample_rate: u32) -> filmcraft_media::Result<AudioBuffer> {
         self.inner.audio(start, frames, sample_rate)
     }
@@ -576,6 +582,16 @@ impl MediaSource for DamagedAsSlate {
                 r
             }
             r => r,
+        }
+    }
+    fn video_frame_unturned(&self, req: FrameRequest) -> filmcraft_media::Result<(Arc<VideoFrame>, u8)> {
+        match self.inner.video_frame_unturned(req) {
+            Ok(f) => {
+                self.failures.lock().unwrap_or_else(PoisonError::into_inner).remove(&self.item);
+                Ok(f)
+            }
+            // failures are counted (and the slate drawn) as for any frame
+            Err(_) => self.video_frame(req).map(|f| (f, 0)),
         }
     }
     fn audio(&self, start: i64, frames: usize, sample_rate: u32) -> filmcraft_media::Result<AudioBuffer> {

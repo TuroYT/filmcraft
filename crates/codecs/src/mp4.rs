@@ -486,8 +486,10 @@ impl MediaSource for Mp4Source {
         let ti = self.vtrack.ok_or_else(|| CodecError::Unsupported("no video".into()))?;
         let t = req.time.max(Tick::ZERO);
         let ts = self.file.tracks[ti].timescale as i64;
-        let late = filmcraft_media::cancel::catch_up().map(|m| (t - m).to_rational_round(1, ts));
-        Ok(self.video.frame_late_unturned(&Mp4Video { src: self, track: ti }, t.to_rational_round(1, ts), late)?)
+        let rate = self.info.video.as_ref().map(|v| v.frame_rate).unwrap_or_default();
+        let at = |t: Tick| crate::gop::lookup_time(t, 1, ts, rate, self.snap);
+        let late = filmcraft_media::cancel::catch_up().map(|m| at(t - m));
+        Ok(self.video.frame_late_unturned(&Mp4Video { src: self, track: ti }, at(t), late)?)
     }
 
     fn audio(&self, start: i64, frames: usize, sample_rate: u32) -> Result<AudioBuffer, MediaError> {

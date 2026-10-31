@@ -788,7 +788,6 @@ fn long_gop_continue_does_not_restart_for_the_next_frame() {
     assert!(s.decodes.load(Ordering::Relaxed) - decodes <= 8 + 2);
 }
 
-
 /// #3467: a rotated stream's frames are cached raw while the decoder runs (the lock held), and
 /// only the frames requests take are rotated, off the lock; the result replaces the raw frame.
 #[test]
@@ -878,6 +877,7 @@ fn raw_frames_taken_from_the_cache_come_out_rotated() {
         assert_eq!((f.width, f.height, turns), (2, 1, 1), "intra {intra}");
         assert_eq!((c.frame(&s, 3000).expect("frame").width, turns), (1, 1), "intra {intra}");
     }
+}
 
 #[test]
 fn release_idle_empties_idle_caches_and_leaves_one_in_use_alone() {
